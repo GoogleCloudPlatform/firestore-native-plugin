@@ -18,7 +18,7 @@ This extension uses **Agent Skills** to interact with Firestore. The development
 1.  **Clone the Repository:**
 
     ```bash
-    git clone https://github.com/gemini-cli-extensions/firestore-native.git
+    git clone https://github.com/GoogleCloudPlatform/firestore-native-plugin.git
     cd firestore-native
 
 2.  **Install the Extension Locally:** Use the Gemini CLI to install the
