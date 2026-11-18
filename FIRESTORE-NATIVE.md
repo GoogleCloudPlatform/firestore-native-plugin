@@ -49,3 +49,36 @@ Users may have set project environment variables:
 Instead of prompting the user for these values for specific skill calls, prompt the user to verify the reuse of a specific setting value.
 Make sure to not use the environment variable name like `FIRESTORE_PROJECT`, `${FIRESTORE_PROJECT}`, or `$FIRESTORE_PROJECT`.
 The value can be verified by the user using the `gemini extensions config firestore-native` command or by checking their local settings.
+
+## Checking the Schema Before Writing
+
+Firestore doesn't enforce a schema, so a write with a misspelled field name or a wrong type (for example, a number stored as a string) succeeds but can break the application's queries and reads. Before adding or updating documents in an existing collection, look up the collection's schema in Knowledge Catalog and match its field names and types.
+
+1.  **Find the database location**:
+
+    ```bash
+    curl -s -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+      "https://firestore.googleapis.com/v1/projects/<PROJECT_ID>/databases/<DATABASE_ID>"
+    ```
+
+    Use the `locationId` value from the response (for example, `nam5` or `us-central1`).
+
+2.  **Look up the collection's schema**, using the collection ID (the last segment of the collection path):
+
+    ```bash
+    curl -s -X POST \
+      -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+      -H "Content-Type: application/json" \
+      "https://dataplex.googleapis.com/v1/projects/<PROJECT_ID>/locations/<LOCATION>:lookupContext" \
+      -d '{"resources": ["projects/<PROJECT_ID>/locations/<LOCATION>/entryGroups/@firestore/entries/firestore.googleapis.com/projects/<PROJECT_ID>/databases/<DATABASE_ID>/collectionGroups/<COLLECTION_ID>"]}'
+    ```
+
+    The `context` field in the response lists each field's `name`, `type`, and `mode`. Map fields list their nested `fields`.
+
+3.  **Use the schema as guidance**:
+
+    *   Reuse the existing field names and types.
+    *   The schema is refreshed daily from a sample of documents, so a recently added field might be missing. Don't refuse a write only because a field isn't listed.
+    *   If the request fails (for example, when the Knowledge Catalog API isn't enabled or permissions are missing) or returns an empty response (`{}`, for example for a new collection), read a few existing documents from the collection instead.
+
+Looking up the schema requires the Knowledge Catalog (Dataplex) API to be enabled on the project and the `datastore.schemas.get` permission, which is included in the Cloud Datastore Viewer role (`roles/datastore.viewer`).
